@@ -1,7 +1,7 @@
 import sqlite3
 import pandas as pd
 
-from src.functions.config import DB_PATH
+from src.config import DB_PATH
 
 def get_connection() -> sqlite3.Connection:
     """Establish a connection to the SQLite database."""
