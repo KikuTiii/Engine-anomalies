@@ -1,31 +1,39 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from src.functions.model import predict
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-app = FastAPI(
-    title="Engine Anomalies API",
-)
+from src.functions.model import load, predict
 
-class inputData(BaseModel):
-    rotacao_rpm: float
-    vibracao_mm_s: float
-    temperatura_c: float
-    corrente_a: float
+
+artifact: dict = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    artifact.update(load())
+    yield
+    artifact.clear()
+
+
+app = FastAPI(title="Motor Fault Classifier", lifespan=lifespan)
+
+
+class SensorReading(BaseModel):
+    rotacao_rpm: float = Field(gt=0, description="Rotacao em RPM")
+    vibracao_mm_s: float = Field(gt=0, description="Vibracao em mm/s")
+    temperatura_c: float = Field(gt=0, description="Temperatura em graus Celsius")
+    corrente_a: float = Field(gt=0, description="Corrente eletrica em Amperes")
+
 
 @app.get("/health")
-def health_check() -> dict:
+def health():
     return {"status": "ok"}
 
+
 @app.post("/predict")
-def make_prediction(vars: inputData) -> dict:
-    """
-    Make a prediction using the trained model.
-
-    Args:
-        vars (dict): A dictionary containing the input variables for prediction.
-
-    Returns:
-        dict: A dictionary containing the prediction results.
-    """
-    predicao = predict(vars=vars.model_dump())
-    return predicao
+def predict_endpoint(reading: SensorReading):
+    return predict(
+        vars=reading.model_dump(),
+        artifact=artifact,
+    )
