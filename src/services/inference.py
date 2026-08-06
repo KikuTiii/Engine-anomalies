@@ -26,6 +26,15 @@ class SensorReading(BaseModel):
     corrente_a: float = Field(gt=0, description="Corrente eletrica em Amperes")
 
 
+@app.get("/")
+def root():
+    return {
+        "status": "ok",
+        "service": "motor-inference",
+        "health": "/health",
+        "docs": "/docs",
+    }
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
